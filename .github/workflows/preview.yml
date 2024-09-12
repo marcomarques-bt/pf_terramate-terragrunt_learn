@@ -90,6 +90,12 @@ jobs:
       - name: Initialize Terragrunt in changed stacks
         if: steps.list-changed.outputs.stdout
         run: terramate run --parallel 1 --changed -- terragrunt init -lock-timeout=5m
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Plan Terragrunt changes in changed stacks
         if: steps.list-changed.outputs.stdout
@@ -106,6 +112,12 @@ jobs:
             terragrunt plan -out out.tfplan \
             -detailed-exitcode \
             -lock=false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       # ### Update Pull Request comment
 
