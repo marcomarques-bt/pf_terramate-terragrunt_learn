@@ -1,8 +1,8 @@
 locals {
   environment_vars = read_terragrunt_config(find_in_parent_folders("environment.hcl")).locals
-  region_vars       = read_terragrunt_config(find_in_parent_folders("region.hcl")).locals
-  application_vars  = read_terragrunt_config(find_in_parent_folders("application.hcl")).locals
-  lookup            = read_terragrunt_config(find_in_parent_folders("lookups.hcl")).locals
+  region_vars      = read_terragrunt_config(find_in_parent_folders("region.hcl")).locals
+  application_vars = read_terragrunt_config(find_in_parent_folders("application.hcl")).locals
+  lookup           = read_terragrunt_config(find_in_parent_folders("lookups.hcl")).locals
 
   stripped_application_name = replace(local.application_vars.name, "-", "")
 }
@@ -31,7 +31,7 @@ inputs = {
   enable_telemetry              = false
 
   managed_identities = {
-    system_assigned            = true
+    system_assigned = true
   }
 
   blob_properties = {
@@ -39,8 +39,8 @@ inputs = {
   }
 
   network_rules = {
-    bypass                     = ["AzureServices"]
-    default_action             = "Allow"
+    bypass         = ["AzureServices"]
+    default_action = "Allow"
   }
 
   shares = {
