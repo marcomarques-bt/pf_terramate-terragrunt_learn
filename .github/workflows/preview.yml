@@ -3,23 +3,36 @@ name: Terragrunt Preview
 on:
   pull_request:
     branches:
-      - main
+      - master
+
+permissions:
+  id-token: write
+  contents: read
+  issues: write
+  pull-requests: write
 
 jobs:
   preview:
-    name: Plan Terragrunt changes in changed Terramate stacks
+    name: Plan Terragrunt changes in changed stacks
     runs-on: ubuntu-latest
 
     env:
       GITHUB_TOKEN: ${{ github.token }}
 
-    permissions:
-      id-token: write
-      contents: read
-      pull-requests: write
-      checks: read
-
     steps:
+      ### Create Pull Request comment
+
+      - name: Prepare pull request preview comment
+        if: github.event.pull_request
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          header: preview
+          message: |
+            ## Preview of Terraform changes in ${{ github.event.pull_request.head.sha }}
+
+            :warning: preview is being created... please stand by!
+
       ### Check out the code
 
       - name: Checkout
@@ -48,36 +61,38 @@ jobs:
       - name: Check Terramate formatting
         run: terramate fmt --check
 
+      - name: Check Terraform formatting
+        run: terragrunt hclfmt --terragrunt-check
+
       ### Check for changed stacks
 
       - name: List changed stacks
-        id: list
+        id: list-changed
         run: terramate list --changed
 
       ### Configure cloud credentials
 
-      - name: Configure AWS credentials
-        if: steps.list.outputs.stdout
-        uses: aws-actions/configure-aws-credentials@v2
+      - name: 'Configure Azure credentials'
+        if: steps.list-changed.outputs.stdout
+        uses: azure/login@v2
         with:
-          aws-region: ${{ env.AWS_REGION }}
-          role-to-assume: arn:aws:iam::${{ env.AWS_ACCOUNT_ID }}:role/github
-        env:
-          AWS_REGION: us-east-1
-          AWS_ACCOUNT_ID: ${{ vars.AWS_ACCOUNT_ID }}
+          client-id: ${{ vars.ARM_CLIENT_ID }}
+          tenant-id: ${{ vars.ARM_TENANT_ID }}
+          subscription-id: ${{ vars.ARM_SUBSCRIPTION_ID }}
+          
+      - name: Verify Azure credentials
+        if: steps.list-changed.outputs.stdout
+        run: |
+          az account show
 
-      - name: Verify AWS credentials
-        if: steps.list.outputs.stdout
-        run: aws sts get-caller-identity
-
-      ### Run the Terragrunt preview via Terramate in each changed stack
+      ### Run the Terraform preview via Terramate in each changed stack
 
       - name: Initialize Terragrunt in changed stacks
-        if: steps.list.outputs.stdout
+        if: steps.list-changed.outputs.stdout
         run: terramate run --parallel 1 --changed -- terragrunt init -lock-timeout=5m
 
       - name: Plan Terragrunt changes in changed stacks
-        if: steps.list.outputs.stdout
+        if: steps.list-changed.outputs.stdout
         run: |
           terramate run \
             --parallel 5 \
@@ -91,5 +106,59 @@ jobs:
             terragrunt plan -out out.tfplan \
             -detailed-exitcode \
             -lock=false
-        env:
-          TF_VAR_master_password: ${{ secrets.MYSQL_PROD_MASTER_PASSWORD }}
+
+      # ### Update Pull Request comment
+
+      # - name: Generate preview details
+      #   if: steps.list-changed.outputs.stdout
+      #   id: comment
+      #   run: |
+      #     echo >>pr-comment.txt "## Preview of Terragrunt changes in ${{ github.event.pull_request.head.sha }}"
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt '> [!TIP]'
+      #     echo >>pr-comment.txt '> [:mag: View all Preview Details on Terramate Cloud](https://cloud.terramate.io/o/terramate-demo/review-requests)'
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt "### Changed Stacks"
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt '```bash'
+      #     echo >>pr-comment.txt "${{ steps.list-changed.outputs.stdout }}"
+      #     echo >>pr-comment.txt '```'
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt "#### Terragrunt Plan"
+      #     echo >>pr-comment.txt
+      #     terramate script run --changed -- terraform render | dd bs=1024 count=248 >>pr-comment.txt
+      #     [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
+      #     cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
+
+      # - name: Generate preview when no stacks changed
+      #   if: success() && !steps.list-changed.outputs.stdout
+      #   run: |
+      #     echo >>pr-comment.txt "## Preview of Terraform changes in ${{ github.event.pull_request.head.sha }}"
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt "### Changed Stacks"
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt 'No changed stacks, no detailed preview will be generated.'
+      #     cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
+
+      # - name: Generate preview when things failed
+      #   if: failure()
+      #   run: |
+      #     echo >>pr-comment.txt "## Preview of Terraform changes in ${{ github.event.pull_request.head.sha }}"
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt '> [!TIP]'
+      #     echo >>pr-comment.txt '> [:mag: View all Preview Details on Terramate Cloud](https://cloud.terramate.io/o/terramate-demo/review-requests)'
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt "### Changed Stacks"
+      #     echo >>pr-comment.txt
+      #     echo >>pr-comment.txt '```bash'
+      #     echo >>pr-comment.txt "${{ steps.list-changed.outputs.stdout }}"
+      #     echo >>pr-comment.txt '```'
+      #     echo >>pr-comment.txt ':boom: Generating preview failed. Please see details in Actions output.'
+      #     cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
+
+      # - name: Publish generated preview as GitHub commnent
+      #   uses: marocchino/sticky-pull-request-comment@v2
+      #   with:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     header: preview
+      #     path: pr-comment.txt
