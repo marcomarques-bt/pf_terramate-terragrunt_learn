@@ -92,7 +92,6 @@ jobs:
         run: terramate run --parallel 1 --changed -- terragrunt init -lock-timeout=5m
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          ARM_USE_OIDC: true
           ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
@@ -114,7 +113,6 @@ jobs:
             -lock=false
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          ARM_USE_OIDC: true
           ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
