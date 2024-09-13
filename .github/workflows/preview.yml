@@ -129,6 +129,7 @@ jobs:
           echo >>pr-comment.txt '```'
           echo >>pr-comment.txt
           echo >>pr-comment.txt "#### Terragrunt Plan"
+          echo >>pr-comment.txt "<details><summary>Click to expand</summary>"
           echo >>pr-comment.txt
           echo >>pr-comment.txt '```terraform'
           terramate run \
