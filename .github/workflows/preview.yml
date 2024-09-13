@@ -102,14 +102,8 @@ jobs:
           terramate run \
             --parallel 5 \
             --changed \
-            --sync-preview \
-            --terraform-plan-file=out.tfplan \
-            --debug-preview-url preview_url.txt \
-            --continue-on-error \
-            --terragrunt \
             -- \
-            terragrunt plan -out out.tfplan \
-            -detailed-exitcode \
+            terragrunt plan -out plan.tfplan \
             -lock=false
         env:
           GITHUB_TOKEN: ${{ github.token }}
