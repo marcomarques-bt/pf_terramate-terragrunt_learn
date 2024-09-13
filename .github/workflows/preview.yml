@@ -107,7 +107,6 @@ jobs:
             --terragrunt \
             -- \
             terragrunt plan -out out.tfplan \
-            -detailed-exitcode \
             -lock=false
         env:
           GITHUB_TOKEN: ${{ github.token }}
