@@ -129,7 +129,7 @@ jobs:
           echo >>pr-comment.txt "#### Terragrunt Plan"
           echo >>pr-comment.txt
           echo >>pr-comment.txt '```terraform'
-          echo "${{ steps.tgplan.outputs.stdout }} >>pr-comment.txt
+          echo "${{ steps.tgplan.outputs.stdout }} |& dd bs=1024 count=248 >>pr-comment.txt
           [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
           echo >>pr-comment.txt '```'
           cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
