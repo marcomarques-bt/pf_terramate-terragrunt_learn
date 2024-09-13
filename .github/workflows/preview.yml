@@ -119,7 +119,6 @@ jobs:
         run: |
           echo >>pr-comment.txt "## Preview of Terragrunt changes in ${{ github.event.pull_request.head.sha }}"
           echo >>pr-comment.txt
-          echo >>pr-comment.txt
           echo >>pr-comment.txt "### Changed Stacks"
           echo >>pr-comment.txt
           echo >>pr-comment.txt '```bash'
@@ -128,8 +127,10 @@ jobs:
           echo >>pr-comment.txt
           echo >>pr-comment.txt "#### Terragrunt Plan"
           echo >>pr-comment.txt
-          terramate script run --changed -- terraform render | dd bs=1024 count=248 >>pr-comment.txt
+          echo >>pr-comment.txt '```terraform'
+          terramate run --changed -- terraform show -no-color out.tfplan |& dd bs=1024 count=248 >>pr-comment.txt
           [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
+          echo >>pr-comment.txt '```'
           cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
 
       # - name: Generate preview when no stacks changed
