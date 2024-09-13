@@ -98,12 +98,13 @@ jobs:
 
       - name: Plan Terragrunt changes in changed stacks
         if: steps.list-changed.outputs.stdout
+        id: tgplan
         run: |
           terramate run \
             --parallel 5 \
             --changed \
             -- \
-            terragrunt plan -out plan.tfplan \
+            terragrunt plan -out $(pwd)/plan.tfplan \
             -lock=false
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -128,7 +129,7 @@ jobs:
           echo >>pr-comment.txt "#### Terragrunt Plan"
           echo >>pr-comment.txt
           echo >>pr-comment.txt '```terraform'
-          terramate run --changed -- terragrunt plan |& dd bs=1024 count=248 >>pr-comment.txt
+          echo "${{ steps.tgplan.outputs.stdout }} >>pr-comment.txt
           [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
           echo >>pr-comment.txt '```'
           cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
