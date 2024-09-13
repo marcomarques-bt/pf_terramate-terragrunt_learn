@@ -137,6 +137,8 @@ jobs:
             -- \
             terragrunt show -no-color out.tfplan \
             |& dd bs=1024 count=248 >>pr-comment.txt
+          
+            sed -i 's/[0-9]\{2\}:[0-9]\{2\}:[0-9]\{2\}\.[0-9]\{3\} STDOUT terraform: //' pr-comment.txt
           [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terragrunt Plan/#### :warning: Terragrunt Plan truncated: please check console output :warning:/' pr-comment.txt
           echo >>pr-comment.txt '```'
           cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
