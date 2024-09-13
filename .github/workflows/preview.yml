@@ -105,7 +105,8 @@ jobs:
             --changed \
             --continue-on-error \
             -- \
-            terragrunt plan -out $(pwd)/out.tfplan \
+            terragrunt plan -out out.tfplan \
+            -detailed-exitcode \
             -lock=false
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -141,6 +142,11 @@ jobs:
           [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terragrunt Plan/#### :warning: Terragrunt Plan truncated: please check console output :warning:/' pr-comment.txt
           echo >>pr-comment.txt '```'
           cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
 
       # - name: Generate preview when no stacks changed
       #   if: success() && !steps.list-changed.outputs.stdout
