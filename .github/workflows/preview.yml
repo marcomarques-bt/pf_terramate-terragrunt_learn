@@ -103,8 +103,9 @@ jobs:
           terramate run \
             --parallel 5 \
             --changed \
+            --continue-on-error \
             -- \
-            terragrunt plan -out $(pwd)/plan.tfplan \
+            terragrunt plan -out $(pwd)/out.tfplan \
             -lock=false
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -120,6 +121,8 @@ jobs:
         run: |
           echo >>pr-comment.txt "## Preview of Terragrunt changes in ${{ github.event.pull_request.head.sha }}"
           echo >>pr-comment.txt
+          echo >>pr-comment.txt "[:mag: View Details on Terramate Cloud]($(cat prod/preview_url.txt))"
+          echo >>pr-comment.txt
           echo >>pr-comment.txt "### Changed Stacks"
           echo >>pr-comment.txt
           echo >>pr-comment.txt '```bash'
@@ -129,8 +132,13 @@ jobs:
           echo >>pr-comment.txt "#### Terragrunt Plan"
           echo >>pr-comment.txt
           echo >>pr-comment.txt '```terraform'
-          echo "${{ steps.tgplan.outputs.stdout }} |& dd bs=1024 count=248 >>pr-comment.txt
-          [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
+          terramate run \
+            --changed \
+            --terragrunt \
+            -- \
+            terragrunt show -no-color out.tfplan \
+            |& dd bs=1024 count=248 >>pr-comment.txt
+          [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terragrunt Plan/#### :warning: Terragrunt Plan truncated: please check console output :warning:/' pr-comment.txt
           echo >>pr-comment.txt '```'
           cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
 
