@@ -111,28 +111,26 @@ jobs:
           ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
 
-      # ### Update Pull Request comment
+      ### Update Pull Request comment
 
-      # - name: Generate preview details
-      #   if: steps.list-changed.outputs.stdout
-      #   id: comment
-      #   run: |
-      #     echo >>pr-comment.txt "## Preview of Terragrunt changes in ${{ github.event.pull_request.head.sha }}"
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt '> [!TIP]'
-      #     echo >>pr-comment.txt '> [:mag: View all Preview Details on Terramate Cloud](https://cloud.terramate.io/o/terramate-demo/review-requests)'
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt "### Changed Stacks"
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt '```bash'
-      #     echo >>pr-comment.txt "${{ steps.list-changed.outputs.stdout }}"
-      #     echo >>pr-comment.txt '```'
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt "#### Terragrunt Plan"
-      #     echo >>pr-comment.txt
-      #     terramate script run --changed -- terraform render | dd bs=1024 count=248 >>pr-comment.txt
-      #     [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
-      #     cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
+      - name: Generate preview details
+        if: steps.list-changed.outputs.stdout
+        id: comment
+        run: |
+          echo >>pr-comment.txt "## Preview of Terragrunt changes in ${{ github.event.pull_request.head.sha }}"
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt "### Changed Stacks"
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt '```bash'
+          echo >>pr-comment.txt "${{ steps.list-changed.outputs.stdout }}"
+          echo >>pr-comment.txt '```'
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt "#### Terragrunt Plan"
+          echo >>pr-comment.txt
+          terramate script run --changed -- terraform render | dd bs=1024 count=248 >>pr-comment.txt
+          [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
+          cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
 
       # - name: Generate preview when no stacks changed
       #   if: success() && !steps.list-changed.outputs.stdout
