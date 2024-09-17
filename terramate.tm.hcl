@@ -12,6 +12,10 @@ terramate {
       check_uncommitted = false
       check_remote      = false
     }
-  
+
+    # Enable Terramate Scripts
+    experiments = [
+      "scripts",
+    ]
   }
 }

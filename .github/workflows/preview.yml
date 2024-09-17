@@ -90,45 +90,62 @@ jobs:
       - name: Initialize Terragrunt in changed stacks
         if: steps.list-changed.outputs.stdout
         run: terramate run --parallel 1 --changed -- terragrunt init -lock-timeout=5m
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
 
       - name: Plan Terragrunt changes in changed stacks
         if: steps.list-changed.outputs.stdout
+        id: tgplan
         run: |
           terramate run \
             --parallel 5 \
             --changed \
-            --sync-preview \
-            --terraform-plan-file=out.tfplan \
-            --debug-preview-url preview_url.txt \
             --continue-on-error \
             --terragrunt \
             -- \
-            terragrunt plan -out out.tfplan \
-            -detailed-exitcode \
+            terragrunt plan --terragrunt-forward-tf-stdout -out out.tfplan \
             -lock=false
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
 
-      # ### Update Pull Request comment
+      ### Update Pull Request comment
 
-      # - name: Generate preview details
-      #   if: steps.list-changed.outputs.stdout
-      #   id: comment
-      #   run: |
-      #     echo >>pr-comment.txt "## Preview of Terragrunt changes in ${{ github.event.pull_request.head.sha }}"
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt '> [!TIP]'
-      #     echo >>pr-comment.txt '> [:mag: View all Preview Details on Terramate Cloud](https://cloud.terramate.io/o/terramate-demo/review-requests)'
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt "### Changed Stacks"
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt '```bash'
-      #     echo >>pr-comment.txt "${{ steps.list-changed.outputs.stdout }}"
-      #     echo >>pr-comment.txt '```'
-      #     echo >>pr-comment.txt
-      #     echo >>pr-comment.txt "#### Terragrunt Plan"
-      #     echo >>pr-comment.txt
-      #     terramate script run --changed -- terraform render | dd bs=1024 count=248 >>pr-comment.txt
-      #     [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terraform Plan/#### :warning: Terraform Plan truncated: please check console output :warning:/' pr-comment.txt
-      #     cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
+      - name: Generate preview details
+        if: steps.list-changed.outputs.stdout
+        id: comment
+        run: |
+          echo >>pr-comment.txt "## Preview of Terragrunt changes in ${{ github.event.pull_request.head.sha }}"
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt "### Changed Stacks"
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt '```bash'
+          echo >>pr-comment.txt "${{ steps.list-changed.outputs.stdout }}"
+          echo >>pr-comment.txt '```'
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt "#### Terragrunt Plan"
+          echo >>pr-comment.txt "<details><summary>Click to expand</summary>"
+          echo >>pr-comment.txt
+          echo >>pr-comment.txt '```terraform'
+          terramate run \
+            --changed \
+            --terragrunt \
+            -- \
+            terragrunt show -no-color out.tfplan \
+            |& dd bs=1024 count=248 >>pr-comment.txt
+          [ "${PIPESTATUS[0]}" == "141" ] && sed -i 's/#### Terragrunt Plan/#### :warning: Terragrunt Plan truncated: please check console output :warning:/' pr-comment.txt
+          echo >>pr-comment.txt '```'
+          cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          ARM_CLIENT_ID: ${{ vars.ARM_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ vars.ARM_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ vars.ARM_SUBSCRIPTION_ID }}
 
       # - name: Generate preview when no stacks changed
       #   if: success() && !steps.list-changed.outputs.stdout
@@ -156,9 +173,9 @@ jobs:
       #     echo >>pr-comment.txt ':boom: Generating preview failed. Please see details in Actions output.'
       #     cat pr-comment.txt >>$GITHUB_STEP_SUMMARY
 
-      # - name: Publish generated preview as GitHub commnent
-      #   uses: marocchino/sticky-pull-request-comment@v2
-      #   with:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #     header: preview
-      #     path: pr-comment.txt
+      - name: Publish generated preview as GitHub commnent
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          header: preview
+          path: pr-comment.txt
