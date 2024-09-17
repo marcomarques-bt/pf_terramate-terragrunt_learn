@@ -106,7 +106,7 @@ jobs:
             --continue-on-error \
             --terragrunt \
             -- \
-            terragrunt plan -out out.tfplan \
+            terragrunt plan --terragrunt-forward-tf-stdout -out out.tfplan \
             -lock=false
         env:
           GITHUB_TOKEN: ${{ github.token }}
